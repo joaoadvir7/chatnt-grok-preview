@@ -5,6 +5,7 @@ import {
   FileText,
   Map,
 } from "lucide-react";
+import { toast } from "sonner";
 import { DOCS_SECTIONS } from "@/lib/docs-content";
 import { useCrmStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -82,39 +83,91 @@ function MapaPanel() {
     { name: "Painel", status: "ok", note: "Métricas reais por etiqueta e sede" },
     { name: "Funil EB", status: "ok", note: "Lead → Aluno → Jornada → Visita → Estudo" },
     { name: "Contatos", status: "ok", note: `${contacts.filter((c) => !c.isDemo).length} reais` },
-    { name: "Live Chat", status: "ok", note: `${conversations.length} conversas` },
-    { name: "Automações", status: "ok", note: `${autos.filter((a) => a.active).length} ativas` },
-    { name: "Broadcasts", status: "ok", note: `${broadcasts.length} campanhas` },
-    { name: "Conexões", status: connected ? "ok" : "warn", note: `${connected}/${realCx.length} WABA` },
+    { name: "Live Chat", status: "ok", note: `${conversations.length} conversas · ice breakers` },
+    { name: "Automações", status: autos.some((a) => a.active) ? "ok" : "warn", note: `${autos.filter((a) => a.active).length} ativas / ${autos.length}` },
+    { name: "Broadcasts", status: "ok", note: `${broadcasts.filter((b) => !b.trashed).length} disparos` },
+    { name: "CRM Kanban", status: "ok", note: "Sem valores financeiros" },
+    { name: "Conexões", status: connected ? "ok" : "warn", note: `${connected} número(s) Cloud API` },
     { name: "Sedes", status: "ok", note: `${sedes.length} regionais` },
+    { name: "Coexistência", status: "warn", note: "App grátis · API cobrada pela Meta" },
   ];
 
   return (
-    <div className="mx-auto max-w-3xl space-y-3">
-      <p className="text-[14.5px] text-[#5a6780]">
-        Visão rápida do que já está no ChatNT. Documentação completa na aba Documentação.
+    <div className="mx-auto max-w-3xl space-y-4">
+      <p className="text-[14.5px] leading-relaxed text-[#5a6780]">
+        ChatNT é o CRM de atendimento da Escola Bíblica Novo Tempo. Cada sede
+        opera o próprio número; a central vê o consolidado.
       </p>
-      {modules.map((m) => (
-        <div
-          key={m.name}
-          className="flex items-center justify-between rounded-2xl border border-[#e2e7f0] bg-white px-5 py-3.5"
-        >
-          <div>
-            <div className="text-[15px] font-medium text-[#1a2744]">{m.name}</div>
-            <div className="text-[13px] text-[#5a6780]">{m.note}</div>
-          </div>
-          <span
-            className={cn(
-              "rounded-full px-2.5 py-1 text-[12px] font-semibold",
-              m.status === "ok"
-                ? "bg-emerald-50 text-emerald-700"
-                : "bg-amber-50 text-amber-700",
-            )}
-          >
-            {m.status === "ok" ? "OK" : "Atenção"}
-          </span>
+      <div className="rounded-2xl border border-[#031c45]/15 bg-white px-5 py-4">
+        <div className="text-[15px] font-semibold text-[#1a2744]">
+          Código e backup
         </div>
-      ))}
+        <p className="mt-1 text-[13.5px] leading-relaxed text-[#5a6780]">
+          Fonte da UX (22/08/2026):{" "}
+          <a
+            className="font-medium text-[#0050a0] underline"
+            href="https://github.com/joaoadvir7/chatnt-grok-preview"
+            target="_blank"
+            rel="noreferrer"
+          >
+            github.com/joaoadvir7/chatnt-grok-preview
+          </a>
+          . Next.js + Prisma (10/08):{" "}
+          <a
+            className="font-medium text-[#0050a0] underline"
+            href="https://github.com/joaoadvir7/chatnt"
+            target="_blank"
+            rel="noreferrer"
+          >
+            joaoadvir7/chatnt
+          </a>
+          . Conversas reais não estão no Git — baixe o JSON deste navegador
+          (contém token WABA, trate como segredo).
+        </p>
+        <button
+          type="button"
+          className="mt-3 inline-flex items-center rounded-lg bg-[#031c45] px-3 py-1.5 text-[13px] font-medium text-white"
+          onClick={() => {
+            try {
+              const raw = localStorage.getItem("atendimento-nt-v17-name-fix");
+              if (!raw) {
+                toast.error("Nada para exportar neste navegador");
+                return;
+              }
+              const blob = new Blob([raw], { type: "application/json" });
+              const a = document.createElement("a");
+              a.href = URL.createObjectURL(blob);
+              a.download = `chatnt-estado-${new Date().toISOString().slice(0, 10)}.json`;
+              a.click();
+              URL.revokeObjectURL(a.href);
+              toast.success("Backup baixado — guarde fora deste ambiente");
+            } catch {
+              toast.error("Não foi possível exportar");
+            }
+          }}
+        >
+          Baixar backup do estado (JSON)
+        </button>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {modules.map((m) => (
+          <div
+            key={m.name}
+            className="flex items-start gap-3 rounded-2xl border border-[#e2e7f0] bg-white px-4 py-3"
+          >
+            <span
+              className={cn(
+                "mt-1 size-2.5 shrink-0 rounded-full",
+                m.status === "ok" ? "bg-[#0d9f4f]" : "bg-[#f5c400]",
+              )}
+            />
+            <div>
+              <div className="text-[15px] font-semibold text-[#1a2744]">{m.name}</div>
+              <div className="text-[13px] text-[#5a6780]">{m.note}</div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -123,7 +176,7 @@ function DocsPanel() {
   return (
     <div className="mx-auto max-w-3xl space-y-3">
       <p className="text-[14.5px] leading-relaxed text-[#5a6780]">
-        Manual para continuar o projeto. Repositório:{" "}
+        Manual para o próximo programador. Repositório:{" "}
         <a
           className="font-medium text-[#0050a0] underline"
           href="https://github.com/joaoadvir7/chatnt-grok-preview"
@@ -132,7 +185,8 @@ function DocsPanel() {
         >
           chatnt-grok-preview
         </a>
-        . Comece em docs/COMO-CONTINUAR.md.
+        {" "}— comece em docs/COMO-CONTINUAR.md. A pasta <code>docs/</code> tem
+        o texto completo (arquitetura, WhatsApp, módulos, handoff).
       </p>
       {DOCS_SECTIONS.map((x) => (
         <section key={x.id} className="rounded-2xl border border-[#e2e7f0] bg-white px-5 py-4">
